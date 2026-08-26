@@ -1,0 +1,47 @@
+# dependencies
+node_modules/
+
+# env files
+.env
+.env.local
+.env.*.local
+
+# temp uploads
+temp_uploads/
+
+# logs
+logs/
+*.log
+crash-logs/
+
+# cache
+cache/
+perf-traces/
+
+# build output
+dist/
+
+# coverage
+coverage/
+.nyc_output
+
+# telegram session files
+*.session
+telegram-account*.session
+
+# database
+*.db
+*.db-shm
+*.db-wal
+
+# os files
+.DS_Store
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# opencode local data
+.opencode/
