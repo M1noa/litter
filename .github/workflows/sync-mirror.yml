@@ -1,0 +1,53 @@
+name: sync-mirror
+
+# keep the public mirror's commit-count badge up to date
+# runs on every push to main of the private repo
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  update-mirror-count:
+    runs-on: ubuntu-latest
+    # never recurse: this job does not push to the private repo
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: compute commit count
+        id: count
+        run: echo "count=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: update public mirror README
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_REPO_PAT }}
+          COUNT: ${{ steps.count.outputs.count }}
+        run: |
+          # fetch current README from the public mirror
+          resp=$(gh api repos/${{ github.repository_owner }}/litter/contents/README.md \
+            -H "Accept: application/vnd.github+json")
+          sha=$(echo "$resp" | jq -r .sha)
+          old=$(echo "$resp" | jq -r .content | base64 -d)
+
+          # replace the placeholder (or existing number) with the real count
+          new=$(printf '%s' "$old" | sed -E "s/<!--COMMIT_COUNT:[^>]*-->/<!--COMMIT_COUNT:${COUNT}-->/g")
+
+          # only push if something actually changed
+          if [ "$old" = "$new" ]; then
+            echo "no change, skipping"
+            exit 0
+          fi
+
+          body=$(jq -n --arg msg "$new" '{
+            message: "docs: update commit count",
+            content: ($msg | @base64),
+            sha: "$sha"
+          }')
+          gh api -X PUT repos/${{ github.repository_owner }}/litter/contents/README.md \
+            -H "Accept: application/vnd.github+json" \
+            --input <(echo "$body")

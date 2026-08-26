@@ -5,7 +5,18 @@ set -e
 
 cd "$(git rev-parse --show-toplevel)"
 msg="sync $(git rev-parse --short HEAD)${1:+: $1}"
-tree=$(git rev-parse main^{tree})
+
+# inject the live commit count into the mirrored README
+count=$(git rev-list --count main)
+tmp=$(mktemp)
+git show main:README.md | sed -E "s/<!--COMMIT_COUNT:[^>]*-->/<!--COMMIT_COUNT:${count}-->/g" > "$tmp"
+readme_blob=$(git hash-object -w "$tmp")
+rm -f "$tmp"
+
+# build a tree identical to main but with the updated README
+git read-tree main
+git update-index --cacheinfo 100644 "$readme_blob" README.md
+tree=$(git write-tree)
 
 if git rev-parse -q --verify public-release >/dev/null 2>&1; then
   parent=$(git rev-parse public-release)

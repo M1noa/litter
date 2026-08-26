@@ -63,6 +63,8 @@ const config = {
 
   // auth
   tokens: parseTokens(process.env.TOKENS || '[]'),
+  // when true, every /api route requires a bearer token; when false, only admin routes do
+  requireApiAuth: parseBool(process.env.REQUIRE_API_AUTH, false),
 
   // telegram
   telegram: {

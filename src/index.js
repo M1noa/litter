@@ -628,6 +628,16 @@ const verifyToken = (req, res, next) => {
   return res.status(401).json({ error: "Invalid token" });
 };
 
+// Gate for the whole /api surface. When config.requireApiAuth is on, every api
+// request must carry a valid token; otherwise only admin routes enforce auth.
+const apiAuthGate = (req, res, next) => {
+  if (!config.requireApiAuth) return next();
+  req.hasValidToken = hasValidToken(req);
+  if (req.hasValidToken) return next();
+  logger.warn(`API auth required but missing for ${sanitizeUrlForLogging(req.url)}`);
+  return res.status(401).json({ error: "Invalid token" });
+};
+
 // Track consecutive TIMEOUT errors for circuit breaker
 let consecutiveTimeoutErrors = 0;
 let lastTimeoutTimestamp = 0;
@@ -1650,6 +1660,11 @@ app.use('/api', (req, res, next) => {
 	res.setHeader("Cache-Control", "no-store");
 	next();
 });
+
+// optional global api auth gate (off by default; only admin routes require auth)
+if (config.requireApiAuth) {
+  app.use('/api', apiAuthGate);
+}
 
 app.head('/api/status', statusRateLimiter, (req, res) => {
   res.status(200).send();
