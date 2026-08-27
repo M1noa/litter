@@ -96,7 +96,7 @@ Everything is set through environment variables (`.env` file). See `.env.example
 | `TELEGRAM_API_HASH_1` | yes | | Telegram API hash |
 | `TELEGRAM_PHONE_1` | yes | | Telegram phone number |
 | `TOKENS` | yes | | Auth tokens (JSON array or comma-separated) |
-| `REQUIRE_API_AUTH` | no | `false` | Require a bearer token on **every** `/api` route. When `false`, only admin routes need auth. |
+| `REQUIRE_API_AUTH` | no | `false` | Require a bearer token on **every** `/api` route. When `false`, only admin routes need auth. **Warning:** enabling this breaks the web UI upload — the web client calls the API with no way to supply an API key. |
 | `SITE_NAME` | no | `Litter` | Site name shown in UI |
 | `SITE_URL` | no | `https://litter.minoa.cat` | Canonical site URL |
 | `MAX_FILE_SIZE_GB` | no | `80` | Max upload size in GB |
@@ -107,7 +107,7 @@ Everything is set through environment variables (`.env` file). See `.env.example
 
 ### API auth modes
 
-By default the public upload/download endpoints are open and only admin endpoints (delete, operations, stats) require a token. Set `REQUIRE_API_AUTH=true` to lock down the entire API surface — every `/api` request must then carry `Authorization: Bearer <token>`.
+By default the public upload/download endpoints are open and only admin endpoints (delete, operations, stats) require a token. Set `REQUIRE_API_AUTH=true` to lock down the entire API surface — every `/api` request must then carry `Authorization: Bearer <token>`. Note: this also breaks the built-in web UI uploader, which has no API-key configuration.
 
 ### Multi-account Telegram
 
@@ -138,4 +138,4 @@ MIT
 
 This is a **mirror** of the private development repository. It is published without history to keep the commit log clean.
 
-There are currently **<!--COMMIT_COUNT:223-->** total commits in the private repository. This number is updated automatically on every sync.
+There are currently **224** total commits in the private repository. This number is updated automatically on every sync.

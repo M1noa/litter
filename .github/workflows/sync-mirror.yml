@@ -35,7 +35,7 @@ jobs:
           old=$(echo "$resp" | jq -r .content | base64 -d)
 
           # replace the placeholder (or existing number) with the real count
-          new=$(printf '%s' "$old" | sed -E "s/<!--COMMIT_COUNT:[^>]*-->/<!--COMMIT_COUNT:${COUNT}-->/g")
+          new=$(printf '%s' "$old" | sed -E "s/\*\*<!--COMMIT_COUNT:[^>]*-->\*\*/**${COUNT}**/g")
 
           # only push if something actually changed
           if [ "$old" = "$new" ]; then

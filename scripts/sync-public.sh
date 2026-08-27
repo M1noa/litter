@@ -9,7 +9,7 @@ msg="sync $(git rev-parse --short HEAD)${1:+: $1}"
 # inject the live commit count into the mirrored README
 count=$(git rev-list --count main)
 tmp=$(mktemp)
-git show main:README.md | sed -E "s/<!--COMMIT_COUNT:[^>]*-->/<!--COMMIT_COUNT:${count}-->/g" > "$tmp"
+git show main:README.md | sed -E "s/\*\*<!--COMMIT_COUNT:[^>]*-->\*\*/**${count}**/g" > "$tmp"
 readme_blob=$(git hash-object -w "$tmp")
 rm -f "$tmp"
 
