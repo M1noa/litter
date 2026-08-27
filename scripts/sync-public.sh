@@ -32,5 +32,5 @@ for remote in github-public gitlab-public; do
     continue
   fi
   echo "pushing to $remote..."
-  git push "$remote" public-release:main
+  git push --force "$remote" public-release:main
 done
