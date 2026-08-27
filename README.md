@@ -2,33 +2,16 @@
 
 > THIS PROJECT WAS MADE PARTIALLY USING AGENTIC AI CODING TOOLS
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-18%2B-green.svg)](https://nodejs.org)
-[![Telegram](https://img.shields.io/badge/storage-Telegram%20MTProto-blue.svg)](https://core.telegram.org/api)
-[![Mirror](https://img.shields.io/badge/mirror-of-private--repo-lightgrey.svg)](https://github.com/M1noa/litter)
-
-File hosting with Telegram as the storage backend. Upload files up to 80GB, serve them through a clean web UI, no cloud storage bills.
-
 ---
 
 ## How it works
 
 Files are stored in a Telegram chat (channel or group) through the Telegram MTProto API. PostgreSQL keeps the file metadata. Express serves the web UI and a REST API. Large files are split into chunks across multiple Telegram messages, so you can store more than Telegram's 2GB per-message limit.
 
----
-
-## Features
-
 - Upload up to 80GB per file (configurable)
 - Chunked upload for large files (splits across many Telegram messages)
 - Optional end-to-end encrypted (E2EE) file sharing
-- Drag-and-drop web UI
 - REST API with token auth
-- Full API docs are served live at `/api/docs.json`
-- Git LFS proxy mode
-- Dynamic robots.txt / sitemap.xml with AI crawler controls
-- Configurable SEO and analytics injection
-- Multi-account Telegram load balancing (any mix of user accounts and bots)
 
 ---
 
@@ -44,7 +27,7 @@ Files are stored in a Telegram chat (channel or group) through the Telegram MTPr
 ### Install
 
 ```bash
-git clone https://github.com/M1noa/litter.git
+git clone https://github.com/M1noa/litter
 cd litter
 npm install
 ```
@@ -66,10 +49,6 @@ cp .env.example .env
 npm start
 ```
 
-The server starts on port 3000 (configurable via `PORT`).
-
----
-
 ## CLI
 
 ```bash
@@ -81,8 +60,6 @@ npm run litter status         # show config validation
 npm run litter config get SITE_URL                       # get a config value
 npm run litter config set SITE_URL "https://my-site.com" # set a config value
 ```
-
----
 
 ## Configuration
 
@@ -111,31 +88,11 @@ By default the public upload/download endpoints are open and only admin endpoint
 
 ### Multi-account Telegram
 
-You can run any mix of user accounts and MTProto bots. User accounts use phone/session login; bots use a `@BotFather` token and have the same caps as users (2GB upload per file, unlimited download). Add bots with `TELEGRAM_BOT_TOKEN_1`, `TELEGRAM_BOT_TOKEN_2`, … and the generic `TELEGRAM_API_ID` / `TELEGRAM_API_HASH`. User accounts still use the `_1` / `_2` suffixed vars.
+You can run any mix of user accounts and bots. User accounts use phone/session login; bots use a `@BotFather` token and have the same caps as users (2GB upload per file, unlimited download via MTProto). Add bots with `TELEGRAM_BOT_TOKEN_1`, `TELEGRAM_BOT_TOKEN_2`, … and the generic `TELEGRAM_API_ID_1` / `TELEGRAM_API_HASH_1`.
 
 ---
 
-## Development
+## About this repo
 
-```bash
-npm run dev           # nodemon with auto-restart
-npm run dev:debug     # debug mode
-npm test              # run tests
-npm run test:watch    # watch mode
-npm run test:coverage # coverage report
-npm run build:minify  # minify CSS/JS for production
-```
-
----
-
-## License
-
-MIT
-
----
-
-## About this repository
-
-This is a **mirror** of the private development repository. It is published without history to keep the commit log clean.
-
-There are currently **224** total commits in the private repository. This number is updated automatically on every sync.
+This is a *mirror* of the private development repository. It is published without history to keep the commit log clean.
+There are currently **225** total commits in the private repository.
