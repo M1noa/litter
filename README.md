@@ -1,98 +1,146 @@
-# Litter
+# litter — read-only
 
 > THIS PROJECT WAS MADE PARTIALLY USING AGENTIC AI CODING TOOLS
 
----
+The server is gone. This branch keeps the 383,528 existing files reachable without it.
+
+`/` still serves the raid notice. `/files/<id>` still works. Uploads are gone for good, along
+with the Telegram user account, MTProto, Neon, Postgres, and every write path in the app.
+
+Everything runs on the Cloudflare Workers free tier: one Worker, static assets, no database.
 
 ## How it works
 
-Files are stored in a Telegram chat (channel or group) through the Telegram MTProto API. PostgreSQL keeps the file metadata. Express serves the web UI and a REST API. Large files are split into chunks across multiple Telegram messages, so you can store more than Telegram's 2GB per-message limit.
+Files were never stored on the server — they live as messages in a Telegram group, and the
+database only ever held pointers. So the pointers are all that need rehosting.
 
-- Upload up to 80GB per file (configurable)
-- Chunked upload for large files (splits across many Telegram messages)
-- Optional end-to-end encrypted (E2EE) file sharing
-- REST API with token auth
+The index is bundled into the repo as gzipped shards under `public/` and read through the assets
+binding, one fetch per lookup:
 
----
+| Set | Key | Row |
+| --- | --- | --- |
+| `idx/NNN.bin` (256) | `fnv1a(public_id) & 255` | `pid · name · msgid · size · mimeIdx · date` |
+| `mid/NNN.bin` (256) | `telegram_message_id & 255` | `msgid · pid` — for old share links |
+| `names/N.bin` (8) | round robin | `pid · name` — for the bot's `/find` |
 
-## Quick start
+383,528 rows, 24.5 MB gzipped across 520 files, 1406–1625 rows per `idx` shard, largest shard
+962 KB. `fnv1a()` and the `MIMES` table exist in both `src/worker.js` and
+`scripts/shard-index.mjs` and **must stay identical** — the hash picks the shard.
 
-### Prerequisites
+The worker returns 404 for `/idx/*`, `/mid/*` and `/names/*`, so the file listing is never
+downloadable even though it ships with the deploy. **The shards are not in this repo** — they name
+every file anyone ever uploaded, so they stay private. `scripts/shard-index.mjs` builds them.
 
-- Node.js 18+
-- PostgreSQL 14+
-- A Telegram account with API credentials ([get them here](https://my.telegram.org/apps))
-- A Telegram channel or group to use as storage (create one, grab the chat ID)
+Once an id resolves, the worker asks a bot for the bytes. A bot can't download a message it never
+received, and historical posts don't arrive as updates — so the worker forwards the message to a
+scratch chat. `forwardMessage` returns the full Message object, which carries a bot-scoped
+`file_id`. That goes to `getFile`, then the bytes stream from Telegram's CDN. The forwarded copy is
+deleted in `waitUntil`, and the response is written to the Cache API so a second request never
+re-forwards.
 
-### Install
+Bot downloads are capped at 20 MB. 383,332 files are under it and serve over HTTP; the other 196
+get a page linking to the bot, which delivers them in Telegram via `copyMessage` — no size cap, so
+even the 6.2 GB file works there.
 
-```bash
-git clone https://github.com/M1noa/litter
-cd litter
-npm install
+## Routes
+
+| Route | Behaviour |
+| --- | --- |
+| `/` and other assets | raid notice, straight from static assets |
+| `/files/:id[/:filename]` | the file — `:id` accepts a public id or an old Telegram message id |
+| `/file/:id/:filename` | 301 to the canonical `/files/...` |
+| `/api/info/:id` | metadata as JSON |
+| `/tg/webhook/:n` | Telegram webhook, one path per bot token |
+| `/idx/*`, `/mid/*`, `/names/*` | 404 — the bundled index is not public |
+| everything else under `/api/`, `/lfs/` | 410 with the raid notice |
+
+Range requests pass through to Telegram's CDN and skip the cache.
+
+## Setup
+
+**1. Build the index.** Needs the old Postgres reachable once; after that the shards are in git and
+the database is never touched again.
+
+```sh
+DATABASE_URL='postgresql://…/neondb?sslmode=require' ./scripts/build-index.sh
 ```
 
-### Configure
+On Neon, use the **direct** endpoint, not `-pooler` — PgBouncer can't hold a consistent snapshot.
+The script prints row and shard counts; commit `public/idx`, `public/mid`, `public/names`.
 
-```bash
-# interactive wizard
-npm run litter setup
+**2. Set up the bots.** One is enough; a second spreads the Bot API rate limit. Each needs to be an
+**admin of the storage group**. Create a private group for `TELEGRAM_SCRATCH_CHAT_ID` and add the
+bots there too — forwarded copies land in it for a fraction of a second before being deleted.
 
-# or manually
-cp .env.example .env
-# edit .env with your values
+**3. Secrets.**
+
+```sh
+wrangler secret put TELEGRAM_BOT_TOKENS        # comma-separated, order matches /tg/webhook/:n
+wrangler secret put TELEGRAM_CHAT_ID           # the storage group's id
+wrangler secret put TELEGRAM_SCRATCH_CHAT_ID
+wrangler secret put TELEGRAM_WEBHOOK_SECRET    # any random string
+wrangler secret put TELEGRAM_ALLOWED_USERS     # optional; comma-separated user ids
 ```
 
-### Run
+Leaving `TELEGRAM_ALLOWED_USERS` unset lets anyone who finds the bot pull any file by id.
+`TELEGRAM_BOT_USERNAME` lives in `wrangler.jsonc` and drives the `t.me` deep links.
 
-```bash
-npm start
+For local work, put the same names in `.dev.vars` (gitignored) and run `wrangler dev`. It does not
+hot-reload that file — restart after editing it.
+
+**4. Deploy and register the webhooks.**
+
+```sh
+wrangler deploy
+
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+  -d "url=https://litter.minoa.cat/tg/webhook/0" \
+  -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
 ```
 
-## CLI
+## What's been verified
 
-```bash
-npm run litter setup          # interactive first-run wizard
-npm run litter token add      # generate a new auth token
-npm run litter token list     # list configured tokens (masked)
-npm run litter token revoke   # revoke a token by index or value
-npm run litter status         # show config validation
-npm run litter config get SITE_URL                       # get a config value
-npm run litter config set SITE_URL "https://my-site.com" # set a config value
-```
+Tested against the live storage group with the bot as an admin:
 
-## Configuration
+- A bot admin **can** forward arbitrary historical message ids. Probed 11 ids spread over
+  2..405785 — 11/11 resolved.
+- Both lookup paths return the same row: `/api/info/001267167364a894` and `/api/info/142052`.
+- A real end-to-end fetch: 15,616 bytes, matching the indexed size exactly. Range requests return
+  206. `/idx/000.bin` returns 404. Webhook rejects a wrong secret with 403.
+- 383,528 rows survive the round trip through all three shard sets with no mismatches.
 
-Everything is set through environment variables (`.env` file). See `.env.example` for the full list. Key settings:
+## Known rough edges
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `POSTGRESQL_URI` | yes | | PostgreSQL connection string |
-| `TELEGRAM_CHAT_ID` | yes | | Telegram chat/channel ID for storage |
-| `TELEGRAM_API_ID_1` | yes | | Telegram API ID |
-| `TELEGRAM_API_HASH_1` | yes | | Telegram API hash |
-| `TELEGRAM_PHONE_1` | yes | | Telegram phone number |
-| `TOKENS` | yes | | Auth tokens (JSON array or comma-separated) |
-| `REQUIRE_API_AUTH` | no | `false` | Require a bearer token on **every** `/api` route. When `false`, only admin routes need auth. **Warning:** enabling this breaks the web UI upload — the web client calls the API with no way to supply an API key. |
-| `SITE_NAME` | no | `Litter` | Site name shown in UI |
-| `SITE_URL` | no | `https://litter.minoa.cat` | Canonical site URL |
-| `MAX_FILE_SIZE_GB` | no | `80` | Max upload size in GB |
-| `ALLOW_SEARCH_INDEXING` | no | `true` | Allow search engines to index |
-| `ALLOW_AI_SCRAPING` | no | `true` | Allow AI crawlers (GPTBot, ClaudeBot, etc) |
-| `ANALYTICS_HTML` | no | | Raw HTML injected into `<head>` of every page |
-| `PORT` | no | `3000` | Server port |
+- **One dead pointer.** Message 21508 returns "message to forward not found". Isolated — nothing
+  else in the probe set was missing.
+- **Indexed metadata drifts from what Telegram serves.** Message 2 is a 582 KB `.gif` in the
+  index; Telegram returns a 60 KB `.gif.mp4`. The worker prefers the forwarded media's own
+  `file_size` and `mime_type` for exactly this reason, and the 20 MB gate runs on those numbers
+  rather than the indexed ones — 11 oversized gifs would otherwise be rejected on a stale size.
+  Filenames still come from the index, so a transcoded file keeps its original extension.
+- **Some mime types were wrong on upload.** `8d1cfc6e85.png` is WebP bytes, and Telegram reports
+  `image/png` too. Not fixable here.
+- **One chunked file.** `976b9r` (6.2 GB, 64 × 99 MB parts) stores a `_manifest.json` at message
+  407820 instead of the file. Its parts are 99 MB each, so no bot can download them over HTTP at
+  all — only the bot path works, copying all 64 parts into the chat with `cat part-* > name` for
+  reassembly. It's the only row over 2 GB, which is what triggers that branch.
+- **`telegram_file_id` from the old database is unusable.** 3,659 rows contain the literal string
+  `[object Object]`, and the valid ones are MTProto document ids the Bot API won't accept.
+  Everything resolves through `telegram_message_id`.
+- The Telegram account that owns the group still has to exist and still hold it. The bots are
+  admins, not owners.
 
-### API auth modes
+## Free tier headroom
 
-By default the public upload/download endpoints are open and only admin endpoints (delete, operations, stats) require a token. Set `REQUIRE_API_AUTH=true` to lock down the entire API surface — every `/api` request must then carry `Authorization: Bearer <token>`. Note: this also breaks the built-in web UI uploader, which has no API-key configuration.
+Worker bundle is 14.4 KiB of the 3 MiB limit. 526 assets of 20,000, largest 962 KB of 25 MiB.
+100,000 requests/day. Cache hits don't re-invoke Telegram.
 
-### Multi-account Telegram
-
-You can run any mix of user accounts and bots. User accounts use phone/session login; bots use a `@BotFather` token and have the same caps as users (2GB upload per file, unlimited download via MTProto). Add bots with `TELEGRAM_BOT_TOKEN_1`, `TELEGRAM_BOT_TOKEN_2`, … and the generic `TELEGRAM_API_ID_1` / `TELEGRAM_API_HASH_1`.
-
----
+CPU time is not a concern — the 10 ms limit excludes time spent waiting on I/O, and this worker
+does nothing but wait on Telegram.
 
 ## About this repo
 
-This is a *mirror* of the private development repository. It is published without history to keep the commit log clean.
-There are currently **247** total commits in the private repository.
+This is a *mirror* of the private development repository, published without history to keep the
+commit log clean. There are currently **225** total commits in the private repository.
+
+The bundled index is omitted here — see above. Everything else needed to run this is present.

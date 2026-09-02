@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "litterraid",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-06-30",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // everything else is a static asset and never reaches the worker.
+    // idx/mid/names are the bundled index: the worker reads them through the
+    // binding and 404s them here, so they are never publicly downloadable.
+    "run_worker_first": [
+      "/files/*",
+      "/file/*",
+      "/api/*",
+      "/lfs/*",
+      "/tg/*",
+      "/idx/*",
+      "/mid/*",
+      "/names/*"
+    ]
+  },
+  "vars": {
+    // public @username of the bot, used for t.me deep links on oversized files
+    "TELEGRAM_BOT_USERNAME": "clitterus_bot"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}

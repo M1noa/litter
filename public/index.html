@@ -4,334 +4,84 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Litter - Fast & Simple 80GB File Hosting</title>
-  <meta
-    name="description"
-    content="Free file hosting service with 80GB limit. Simple, fast, and reliable alternative to catbox.moe with no bullshit UI."
-  />
-  <meta
-    name="keywords"
-    content="file host, file hosting, catbox alternative, catbox.moe, 80GB file host, free file hosting"
-  />
+  <meta name="description" content="Free file hosting service with 80GB limit. Simple, fast, and reliable alternative to catbox.moe with no bullshit UI." />
+  <meta name="keywords" content="file host, file hosting, catbox alternative, catbox.moe, 80GB file host, free file hosting" />
   <meta name="author" content="Minoa" />
   <meta name="robots" content="index, follow" />
-
-  <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://litter.minoa.cat/" />
   <meta property="og:title" content="Litter - Fast & Simple 80GB File Hosting" />
-  <meta
-    property="og:description"
-    content="Free file hosting service with 80GB limit. Simple, fast, and reliable alternative to catbox.moe with no bullshit UI."
-  />
+  <meta property="og:description" content="Free file hosting service with 80GB limit. Simple, fast, and reliable alternative to catbox.moe with no bullshit UI." />
   <meta property="og:image" content="https://litter.minoa.cat/assets/og-image.png" />
-
-  <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image" />
   <meta property="twitter:url" content="https://litter.minoa.cat/" />
   <meta property="twitter:title" content="Litter - Fast & Simple 80GB File Hosting" />
-  <meta
-    property="twitter:description"
-    content="Free file hosting service with 80GB limit. Simple, fast, and reliable alternative to catbox.moe with no bullshit UI."
-  />
+  <meta property="twitter:description" content="Free file hosting service with 80GB limit. Simple, fast, and reliable alternative to catbox.moe with no bullshit UI." />
   <meta property="twitter:image" content="https://litter.minoa.cat/assets/og-image.png" />
-
-  <meta http-equiv="x-dns-prefetch-control" content="on" />
-
-  <link rel="preconnect" href="https://api.telegram.org" />
-  <link rel="dns-prefetch" href="https://api.telegram.org" />
-
-  <!-- Critical CSS for instant first paint -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet" />
   <style>
-    :root{--background:#121212;--text:rgba(255,255,255,0.87);--text-muted:rgba(255,255,255,0.6);--text-bright:rgba(255,255,255,1);--card-bg:rgba(30,30,30,1);--card-hover:rgba(40,40,40,1);--border:rgba(60,60,60,1);--hover-border:rgba(80,80,80,1);--button-bg:rgba(60,60,60,1);--button-hover:rgba(80,80,80,1);--highlight-bg:rgba(80,80,80,1);--highlight-text:rgba(255,255,255,1);--link-color:#90caf9;--link-hover:#64b5f6;--link-bright:#bbdefb;--primary-color:#90caf9;--notification-success-bg:rgba(76,175,80,1);--notification-error-bg:rgba(244,67,54,1);--notification-info-bg:rgba(33,150,243,1);--input-bg:rgba(0,0,0,0.2);--space-1:0.25rem;--space-2:0.5rem;--space-3:0.75rem;--space-4:1rem;--space-5:1.5rem;--space-6:2rem;--space-8:3rem;--space-12:4rem}
-    @font-face{font-family:'Space Grotesk';src:url('/fonts/space-grotesk-latin-400-normal.woff2') format('woff2');font-weight:400 800;font-style:normal;font-display:swap}@font-face{font-family:'Rubik 80s Fade';src:url('/fonts/rubik-80s-fade-latin-400-normal.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
-    body{background-color:var(--background);color:var(--text);font-family:"Space Grotesk",sans-serif;line-height:1.6;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden;position:relative;margin:0;padding:0}
-    h1{font-family:"Rubik 80s Fade",cursive;font-size:3rem;margin-bottom:0.5rem;text-align:center;color:var(--text-bright);font-weight:normal;text-wrap:balance}
-    .hero-subtitle{font-size:0.95rem;color:var(--text-muted);margin:0.25rem 0 0;font-style:italic}
-    .migration-banner{padding:0.6rem var(--space-5);font-size:0.85rem;text-align:center;background:rgba(255,85,85,0.1);color:var(--text-bright);width:100%;border-radius:0!important;margin:0;box-sizing:border-box;position:relative}
-    .drop-zone{width:100%;max-width:800px;margin:0 auto;min-height:180px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0.5rem;background:var(--button-bg);border:2px dashed transparent;border-radius:12px;cursor:pointer;padding:3rem;text-align:center}
-    .drop-zone p{color:var(--text-muted);font-style:italic;margin:0}
-    .drop-zone-meta{font-size:0.8rem;color:var(--text-muted);opacity:0.7;font-style:normal;margin:0}
-    main{flex:1;width:100%;max-width:900px;margin:0 auto;padding:var(--space-6) var(--space-4);display:flex;flex-direction:column;justify-content:flex-start;gap:var(--space-6)}
+    :root { --yellow: #f0db4f; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    ::-webkit-scrollbar { display: none; }
+    html { scrollbar-width: none; }
+    body {
+      background: #161618;
+      color: rgba(255,255,255,0.85);
+      font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      line-height: 1.8;
+      position: relative;
+      overflow-x: hidden;
+    }
+    .container { position: relative; z-index: 2; max-width: 600px; }
+    p { margin-bottom: 1.2rem; font-size: 1rem; }
+    p:last-child { margin-bottom: 0; }
+    a {
+      color: var(--yellow);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      transition: opacity 0.2s;
+    }
+    a:hover { opacity: 0.7; }
+    .noise-bg {
+      position: fixed;
+      top: -50%; left: -50%; right: -50%; bottom: -50%;
+      width: 200%; height: 200vh;
+      background: transparent url('noise.png') repeat 0 0;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 1;
+      animation: noise-animation 0.2s infinite;
+    }
+    @keyframes noise-animation {
+      0% { transform: translate(0,0) }
+      10% { transform: translate(-5%,-5%) }
+      20% { transform: translate(-10%,5%) }
+      30% { transform: translate(5%,-10%) }
+      40% { transform: translate(-5%,15%) }
+      50% { transform: translate(-10%,5%) }
+      60% { transform: translate(15%,0) }
+      70% { transform: translate(0,10%) }
+      80% { transform: translate(-15%,0) }
+      90% { transform: translate(10%,5%) }
+      100% { transform: translate(5%,0) }
+    }
   </style>
-
-  <!-- Shared Styles -->
-  <link rel="stylesheet" href="/css/style.min.css?v=20260413b" />
-
-<!-- Deferred Analytics -->
-<script defer src="/js/analytics-loader.js"></script>
-  <noscript><img src="https://analytics.minoa.cat/p/AJKh6B9VT" style="border:0;width:1px;height:1px;" alt="" /></noscript>
 </head>
 <body>
-  <main>
-    <div id="migration-banner" class="migration-banner" style="display:none;">
-      <p><strong>migration notice:</strong> uploads and downloads may experience intermittent issues during our ongoing migration.</p>
-      <p class="small-text">need a missing file? contact <a href="mailto:litter@minoa.cat">litter@minoa.cat</a>, visit <a href="https://minoa.cat" target="_blank">minoa.cat</a>, or dm <a href="https://discord.com/users/919656376807092304" target="_blank">minoa.cat</a> on discord.</p>
-      <button type="button" class="banner-dismiss" aria-label="Dismiss notice">x</button>
-    </div>
-
-    <div class="hero-stream">
-      <h1>litter</h1>
-      <p class="hero-subtitle">drop anything. get a link.</p>
-    </div>
-
-    <div class="upload-stream">
-      <div class="drop-zone" id="dragDropBox" role="button" tabindex="0" aria-label="Upload files — click or drop files here">
-        <p id="dragText">drop files here or click to browse</p>
-        <p class="drop-zone-meta">maximum file size: 80gb</p>
-      </div>
-      <input type="file" id="fileInput" class="file-input" multiple aria-label="Select files to upload" />
-      <div class="status" id="status" role="status" aria-live="polite"></div>
-    </div>
-
-    <ul id="fileList" style="list-style:none;padding:0;display:none;"></ul>
-  </main>
-
-  <footer>
-    <div class="footer-left">
-      <span
-        id="totalSizeFooter"
-        class="footer-storage-info"
-        title="Click to open settings"
-        style="cursor: pointer; text-decoration: underline dotted"
-      >Loading...</span
-      >
-      <p class="seo-text">a free, open file host using telegram for storage.</p>
-    </div>
-
-<div class="footer-links">
-	<button type="button" id="privacyBtn" class="footer-btn">privacy policy</button>
-      <button type="button" id="termsBtn" class="footer-btn">terms of service</button>
-      <a href="/misc" class="footer-btn">tools</a>
-      <a href="/api/docs.json" class="footer-btn" target="_blank">docs</a>
-      <a href="/report" class="footer-btn">report</a>
-      <button type="button" id="historyBtn" class="footer-btn">upload history</button>
-      <a href="mailto:litterdmca@minoa.cat" class="footer-btn">dmca</a>
-      <a href="https://crypto.minoa.cat" class="footer-btn" target="_blank">donate</a>
-    </div>
-  </footer>
-
-  <!-- Upload History Drawer -->
-  <div class="drawer-overlay" id="historyDrawerOverlay"></div>
-  <div class="drawer" id="historyDrawer">
-    <div class="drawer-header">
-      <h2>upload history</h2>
-      <button class="close-drawer" id="closeHistoryDrawer" aria-label="Close history">&times;</button>
-    </div>
-    <div class="drawer-controls">
-      <input type="text" id="historySearch" class="input-field" placeholder="search files..." aria-label="Search upload history" />
-      <select id="historySort" class="input-field">
-        <option value="date-desc">newest first</option>
-        <option value="date-asc">oldest first</option>
-        <option value="size-desc">largest first</option>
-        <option value="size-asc">smallest first</option>
-        <option value="name-asc">name (A-Z)</option>
-        <option value="name-desc">name (Z-A)</option>
-      </select>
-      <select id="historyFilter" class="input-field">
-        <option value="all">all files</option>
-        <option value="image">images</option>
-        <option value="video">videos</option>
-        <option value="audio">audio</option>
-        <option value="document">documents</option>
-        <option value="archive">archives</option>
-        <option value="other">other</option>
-      </select>
-    </div>
-    <div class="drawer-content" id="historyList">
-      <div class="history-empty">no upload history yet</div>
-    </div>
+  <div class="noise-bg"></div>
+  <div class="container">
+    <p>my server (a steam deck) was seized during an FBI raid on my home 06/24/2026. the database that tracked every uploaded file is on that server, so the file host can't operate until i get my property back. files uploaded before the raid are still served, read-only.</p>
+    <p>if you need files immediately then <a href="mailto:litter@minoa.cat">email me</a>, and if you want status updates join the <a href="https://discord.gg/YGZD9D5xHp">discord server</a> for my <a href="https://squint.cc">discord bot</a>.</p>
+    <p>litter will be back, <strong>your files are not lost</strong>.</p>
   </div>
-
-  <!-- Delete Confirmation Modal -->
-  <div class="modal" id="deleteConfirmModal">
-    <div class="modal-content modal-sm">
-<button class="close-modal" aria-label="Close dialog">&times;</button>
- <h2>delete file?</h2>
-      <p style="color: var(--text-muted); margin: 1rem 0;">are you sure you want to delete this file? this action cannot be undone.</p>
-      <div class="modal-actions">
-        <button class="button" id="cancelDeleteBtn">cancel</button>
-        <button class="button button-danger" id="confirmDeleteBtn">delete</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Settings Drawer -->
-  <div class="drawer-overlay" id="settingsDrawerOverlay"></div>
-  <div class="settings-drawer" id="settingsDrawer">
-    <div class="drawer-header">
-      <h2>settings</h2>
-      <button class="close-drawer" id="closeSettingsDrawer" aria-label="Close settings">&times;</button>
-    </div>
-    <div class="drawer-body">
-      <div class="settings-group">
-        <h3>upload performance</h3>
-        <p class="utility-description">tune these settings based on your network connection. chunking splits large files into smaller pieces (chunks) to bypass size limits and improve reliability.</p>
-        <div class="input-group" title="how many files can be uploaded at the exact same time.">
-          <label for="maxConcurrentUploads">max concurrent file uploads (1-10)</label>
-          <input type="number" id="maxConcurrentUploads" class="input-field" min="1" max="10" />
-        </div>
-        <div class="input-group" title="delay between starting new uploads to prevent rate limiting.">
-          <label for="uploadCooldown">upload cooldown (ms) (0-10000)</label>
-          <input type="number" id="uploadCooldown" class="input-field" min="0" max="10000" />
-        </div>
-        <div class="input-group" title="how many chunks of a single large file to upload simultaneously.">
-          <label for="maxConcurrentChunks">max concurrent chunks (1-10)</label>
-          <input type="number" id="maxConcurrentChunks" class="input-field" min="1" max="10" />
-        </div>
-        <div class="input-group" title="size of each chunk. max 99mb due to cloudflare limits.">
-          <label for="chunkSizeMB">chunk size (mb) (1-99)</label>
-          <input type="number" id="chunkSizeMB" class="input-field" min="1" max="99" />
-        </div>
-      </div>
-
-      <div class="settings-group">
-        <h3>visuals</h3>
-        <div class="input-group">
-          <label for="themeSelect">theme</label>
-          <select id="themeSelect" class="input-field">
-            <option value="custom">custom</option>
-            <option value="random">random (unique color each visit)</option>
-          </select>
-        </div>
-        <div class="input-group color-picker-group" id="colorPickerGroup">
-          <label for="primaryColorPicker">accent color</label>
-          <input type="color" id="primaryColorPicker" class="color-picker-input" value="#90caf9" title="pick your accent color" />
-        </div>
-      </div>
-
-      <div class="settings-group">
-        <h3>upload preferences</h3>
-        <p class="utility-description">customize your upload experience with these optional features.</p>
-        <div class="input-group">
-          <label for="enablePaste">enable paste detection (Ctrl+V)</label>
-          <input type="checkbox" id="enablePaste" class="toggle-input" checked />
-        </div>
-        <div class="input-group">
-          <label for="autoOpenFilePicker">auto-open file picker on page load</label>
-          <input type="checkbox" id="autoOpenFilePicker" class="toggle-input" />
-        </div>
-        <div class="input-group">
-          <label for="autoCopyLink">auto-copy link to clipboard after upload</label>
-          <input type="checkbox" id="autoCopyLink" class="toggle-input" checked />
-        </div>
-      <div class="input-group">
-<label for="sessionOnlyHistory">session-only history (clear on browser close)</label>
-<input type="checkbox" id="sessionOnlyHistory" class="toggle-input" />
-</div>
-</div>
-
-<div class="settings-group">
-<h3>end-to-end encryption (beta)</h3>
-<p class="utility-description">encrypt files locally before uploading. the server never sees your unencrypted data. links won't be direct — recipients need the passphrase (included in the share link via URL fragment, never sent to the server).</p>
-<div class="input-group" title="encrypt files end-to-end before uploading">
-<label for="e2eeEnabled">E2EE (beta)</label>
-<input type="checkbox" id="e2eeEnabled" class="toggle-input" />
-</div>
-<div class="input-group" id="customPassphraseGroup" style="display:none" title="use your own passphrase instead of auto-generated">
-<label for="customPassphrase">custom passphrase</label>
-<input type="checkbox" id="customPassphrase" class="toggle-input" />
-</div>
-<div class="input-group" id="customPassphraseValueGroup" style="display:none" title="your custom passphrase (9-24 characters)">
-<label for="customPassphraseValue">passphrase (9-24 chars)</label>
-<input type="text" id="customPassphraseValue" class="input-field" minlength="9" maxlength="24" placeholder="enter passphrase..." />
-</div>
-<div class="input-group" title="replace filename with random string (keeps extension)">
-<label for="randomFilename">random filename</label>
-<input type="checkbox" id="randomFilename" class="toggle-input" />
-</div>
-<div class="input-group" id="randomFilenameLengthGroup" style="display:none" title="length of random filename">
-<label for="randomFilenameLength">random filename length (6-32)</label>
-<input type="number" id="randomFilenameLength" class="input-field" min="6" max="32" />
-</div>
-<div class="input-group" title="automatically start download when visiting an E2EE link with passphrase">
-<label for="e2eeAutoDownload">auto-download on E2EE pages</label>
-<input type="checkbox" id="e2eeAutoDownload" class="toggle-input" checked />
-</div>
-</div>
-    </div>
-  <div class="drawer-footer">
-    <button class="button" id="exitSettingsBtn">close</button>
-  </div>
-  </div>
-
-  <!-- Privacy Modal -->
-  <div class="modal" id="privacyModal">
-    <div class="modal-content">
-<button class="close-modal" aria-label="Close dialog">&times;</button>
- <h2>privacy policy</h2>
-      <p>last updated: june 2024</p>
-      <br />
-      <p>at litter, we value your privacy and aim to be fully transparent about how this service operates:</p>
-      <br />
-      <div style="margin-left: 10px">
-        <p><strong>storage:</strong> all files are stored securely on telegram's servers, not our own.</p>
-        <p><strong>data collection:</strong> we do not collect, require, or store any personal information.</p>
-        <p>
-          <strong>accessibility:</strong> any file you upload is public and can be accessed by anyone with the link.
-        </p>
-        <p>
-          <strong>analytics:</strong> we use
-          <a
-            href="https://github.com/umami-software/umami?tab=readme-ov-file#umami"
-            target="_blank"
-            style="color: var(--link-color)"
-            >anonymous analytics</a
-          >.
-        </p>
-        <p><strong>third parties:</strong> your data is never sold or shared with third parties.</p>
-      </div>
-      <br />
-      <p>by using our service, you agree to this privacy policy.</p>
-    </div>
-  </div>
-
-  <!-- Terms Modal -->
-  <div class="modal" id="termsModal">
-    <div class="modal-content">
-<button class="close-modal" aria-label="Close dialog">&times;</button>
- <h2>terms of service</h2>
-      <p>last updated: june 2024</p>
-      <br />
-      <p>by using litter, you agree to the following terms:</p>
-      <br />
-      <div style="margin-left: 10px">
-        <p><strong>content responsibility:</strong> you are solely responsible for the content you upload.</p>
-        <p><strong>prohibited content:</strong> do not upload illegal content, malware, or harmful files.</p>
-        <p><strong>limits:</strong> the maximum file size per upload is 80gb.</p>
-        <p>
-          <strong>public access:</strong> files are stored publicly; anyone with the URL can view or download them.
-        </p>
-        <p><strong>moderation:</strong> we reserve the right to remove any content at any time without notice.</p>
-        <p>
-          <strong>liability:</strong> we are not responsible for data loss, downtime, or the nature of uploaded
-          content.
-        </p>
-      </div>
-      <br />
-      <p>we reserve the right to modify these terms at any time.</p>
-    </div>
-  </div>
-
-  <!-- GIF to WebP Conversion Feedback Modal -->
-  <!-- Removed per user request -->
-
-  <!--
-  ===========================================
-  GIF TO WEBP NOTIFICATION SYSTEM
-  ===========================================
-  This notification system can be easily disabled by commenting out the entire section below.
-  It includes:
-  - Bottom-right notification popup
-  - localStorage preference saving
-  - URL fragment support (#gif2webp, #tos, #privacy)
-  - Matching design with existing modals
-  ===========================================
--->
-  <!-- Notification system removed per user request -->
-
-<!-- Shared JavaScript -->
-<script defer src="/js/shared.min.js?v=4e1b2428"></script>
-<script defer src="/js/e2ee.js"></script>
-<script defer src="/js/main.min.js?v=20260413b"></script>
 </body>
 </html>
