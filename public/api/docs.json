@@ -1,0 +1,134 @@
+{
+  "api_version": "2.7.0-readonly",
+  "base_url": "https://litter.minoa.cat",
+  "description": "Litter is read-only. The database server was seized during an FBI raid, so every write path is permanently gone: uploads, chunked uploads, E2EE, deletion, reporting, translation and Git LFS no longer exist. The 383,528 files that were already stored are still served from Telegram. Files over 20 MB return 413 — Telegram's Bot API will not hand them over.",
+  "endpoints": {
+    "download": {
+      "/files/:id/:filename": {
+        "method": "GET",
+        "description": "Download or stream a file. Supports Range requests.",
+        "requires_auth": false,
+        "rate_limited": false,
+        "parameters": {
+          "id": "string - Public ID (6-24 chars) or legacy numeric Telegram message ID",
+          "filename": "string (optional) - Ignored; the stored filename is always used"
+        },
+        "headers": {
+          "Range": "bytes=0-1023 (optional) - Request partial content"
+        },
+        "response": {
+          "success": {
+            "status": 200,
+            "body": "Binary file content with Content-Type, Content-Disposition and X-Litter-Message-Id headers"
+          },
+          "partial": {
+            "status": 206,
+            "body": "Partial content when Range header is provided. Range requests bypass the cache."
+          },
+          "errors": {
+            "404": "File not found. A numeric ID missing from the index is retried against the Telegram group before this is returned.",
+            "413": "File is over Telegram's 20 MB bot download limit and cannot be served over HTTP. The response is an HTML page carrying the Telegram message ID. 196 files are affected.",
+            "502": "Telegram was unreachable or the stored message is gone"
+          }
+        },
+        "example": "https://litter.minoa.cat/files/001267167364a894/screenshot.png"
+      },
+      "/files/:id": {
+        "method": "GET",
+        "description": "Download a file without a filename in the path. Identical behaviour.",
+        "requires_auth": false,
+        "rate_limited": false
+      }
+    },
+    "info": {
+      "/api/info/:id": {
+        "method": "GET",
+        "description": "Get file metadata.",
+        "requires_auth": false,
+        "rate_limited": false,
+        "parameters": {
+          "id": "string - Public ID or legacy numeric Telegram message ID"
+        },
+        "response": {
+          "success": {
+            "status": 200,
+            "body": {
+              "publicId": "001267167364a894",
+              "filename": "photo.jpg",
+              "size": 123456,
+              "mimeType": "image/jpeg",
+              "uploadDate": "2024-01-01T00:00:00.000Z",
+              "url": "/files/001267167364a894/photo.jpg",
+              "webServable": "boolean — false when the file is over the 20 MB bot limit",
+              "indexed": "boolean — false when the row was missing from the index and had to be resolved from the Telegram group; uploadDate is null in that case"
+            }
+          },
+          "errors": {
+            "404": "File not found"
+          }
+        },
+        "notes": "sha256, md5, ocrText and the NSFW fields are gone — they lived only in the seized database."
+      },
+      "/api/info/:id/:filename": {
+        "method": "GET",
+        "description": "Same as /api/info/:id. The filename is ignored.",
+        "requires_auth": false,
+        "rate_limited": false
+      }
+    },
+    "legacy": {
+      "/file/:id/:filename": {
+        "method": "GET",
+        "description": "Redirects 301 to /files/:id/:filename.",
+        "deprecated": true,
+        "requires_auth": false,
+        "rate_limited": false
+      },
+      "/api/get/:id": {
+        "method": "GET",
+        "description": "Redirects 301 to /files/:messageId/:filename. Discord's unfurler is served the bytes inline instead, so embeds still resolve.",
+        "deprecated": true,
+        "requires_auth": false,
+        "rate_limited": false
+      },
+      "/api/view/:id": {
+        "method": "GET",
+        "description": "Serves the bytes directly, same as /files/:id.",
+        "deprecated": true,
+        "requires_auth": false,
+        "rate_limited": false
+      }
+    },
+    "documentation": {
+      "/api/docs": {
+        "method": "GET",
+        "description": "Redirects 301 to /api/docs.json.",
+        "requires_auth": false,
+        "rate_limited": false
+      },
+      "/api/docs.json": {
+        "method": "GET",
+        "description": "This API documentation.",
+        "requires_auth": false,
+        "rate_limited": false
+      }
+    }
+  },
+  "removed": {
+    "description": "These endpoints existed before the raid and now return 410 Gone. There is no replacement; nothing here accepts writes.",
+    "endpoints": [
+      "POST /api/upload",
+      "POST /api/upload/chunk/*",
+      "POST /api/e2ee/*",
+      "DELETE /api/delete/:id",
+      "GET /api/status",
+      "GET /api/size",
+      "POST /api/report",
+      "POST /api/translate",
+      "GET|POST /lfs/*",
+      "GET /api/operations/*",
+      "GET /api/performance/stats"
+    ],
+    "methods": "Any request that is not GET or HEAD returns 410 regardless of path."
+  }
+}

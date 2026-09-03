@@ -31,8 +31,8 @@ binding, one fetch per lookup:
 `scripts/shard-index.mjs` and **must stay identical** — the hash picks the shard.
 
 The worker returns 404 for `/idx/*`, `/mid/*` and `/names/*`, so the file listing is never
-downloadable even though it ships with the deploy. **The shards are not in this repo** — they name
-every file anyone ever uploaded, so they stay private. `scripts/shard-index.mjs` builds them.
+downloadable even though it ships with the deploy. **These shards are why this branch must only
+ever be pushed to the private remote.**
 
 Once an id resolves, the worker asks a bot for the bytes. A bot can't download a message it never
 received, and historical posts don't arrive as updates — so the worker forwards the message to a
@@ -57,8 +57,10 @@ intact in the group and have to be pulled out by hand.
 | `/` and other assets | raid notice, straight from static assets |
 | `/files/:id[/:filename]` | the file — `:id` accepts a public id or an old Telegram message id |
 | `/file/:id/:filename` | 301 to the canonical `/files/...` |
-| `/api/get/:id`, `/api/view/:id` | the old download URLs, same bytes as `/files/:id` |
+| `/api/get/:id` | 301 to `/files/:msgid/:filename`, as before. Discord's unfurler gets bytes inline |
+| `/api/view/:id` | the old download URL — bytes, same as `/files/:id` |
 | `/api/info/:id` | metadata as JSON |
+| `/api/docs`, `/api/docs.json` | the API docs, trimmed to what still exists |
 | `/idx/*`, `/mid/*`, `/names/*` | 404 — the bundled index is not public |
 | everything else under `/api/`, `/lfs/`, `/tg/` | 410 with the raid notice |
 
@@ -70,10 +72,11 @@ Range requests pass through to Telegram's CDN and skip the cache.
 the database is never touched again.
 
 ```sh
-DATABASE_URL='postgresql://…/neondb?sslmode=require' ./scripts/build-index.sh
+DATABASE_URL='postgresql://…@ep-aged-pond-aeq6gwr3.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require' \
+  ./scripts/build-index.sh
 ```
 
-On Neon, use the **direct** endpoint, not `-pooler` — PgBouncer can't hold a consistent snapshot.
+Use Neon's **direct** endpoint, not `-pooler` — PgBouncer can't hold a consistent snapshot.
 The script prints row and shard counts; commit `public/idx`, `public/mid`, `public/names`.
 
 **2. Set up the bots.** One is enough; a second spreads the Bot API rate limit. Each needs to be an
@@ -109,7 +112,7 @@ Nothing to register on the Telegram side. If a webhook was ever set on these tok
 
 ## What's been verified
 
-Tested against the live storage group with the bot as an admin:
+Tested against the live group (`-1003096025475`, `clitter_files`) with `@clitterus_bot` as admin:
 
 - A bot admin **can** forward arbitrary historical message ids. Probed 11 ids spread over
   2..405785 — 11/11 resolved.
@@ -118,7 +121,8 @@ Tested against the live storage group with the bot as an admin:
   206. `/idx/000.bin` returns 404.
 - The chat fallback works on a real gap: message `296161` is in neither `idx` nor `mid`, and
   `/files/296161/4_01.webp` still serves 4,353,316 bytes of `image/webp`.
-- The old download URLs work: `/api/get/b00a33dba66483680a389410.gif` returns bytes, not a 410.
+- The old download URLs work: `/api/get/b00a33dba66483680a389410.gif` 301s to `/files/1779/…`, and a
+  `Discordbot` user agent gets the bytes inline instead so old embeds still resolve.
 - 383,528 rows survive the round trip through all three shard sets with no mismatches.
 
 ## Known rough edges
@@ -152,10 +156,3 @@ Worker bundle is 10.7 KiB of the 3 MiB limit. 527 assets of 20,000, largest 962 
 
 CPU time is not a concern — the 10 ms limit excludes time spent waiting on I/O, and this worker
 does nothing but wait on Telegram.
-
-## About this repo
-
-This is a *mirror* of the private development repository, published without history to keep the
-commit log clean. There are currently **226** total commits in the private repository.
-
-The bundled index is omitted here — see above. Everything else needed to run this is present.

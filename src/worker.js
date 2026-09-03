@@ -58,8 +58,25 @@ async function route(request, env, ctx) {
     return Response.redirect(`${url.origin}/files/${raw.slice(1).join("/")}`, 301);
   }
 
-  // legacy /api/get/:id and /api/view/:id served bytes, same as /files/:id
-  if (seg[0] === "api" && (seg[1] === "get" || seg[1] === "view") && seg[2]) {
+  // the api docs are the one /api/ path that is a static asset
+  if (seg[0] === "api" && seg[1] === "docs.json") return env.ASSETS.fetch(request);
+  if (seg[0] === "api" && seg[1] === "docs") {
+    return Response.redirect(`${url.origin}/api/docs.json`, 301);
+  }
+
+  // legacy /api/get/:id 301'd to the canonical url. discord's unfurler was the
+  // exception — it got the bytes inline, so embeds keep working.
+  if (seg[0] === "api" && seg[1] === "get" && seg[2]) {
+    if (/Discord/i.test(request.headers.get("user-agent") || "")) {
+      return serveFile(request, env, ctx, seg[2]);
+    }
+    const row = await lookup(env, url, seg[2]) || await fromChat(env, ctx, seg[2]);
+    if (!row) return json({ status: 404, message: "not found" }, 404);
+    return Response.redirect(`${url.origin}/files/${row.msgid}/${encodeFilename(row.name)}`, 301);
+  }
+
+  // legacy /api/view/:id served the bytes itself, no redirect
+  if (seg[0] === "api" && seg[1] === "view" && seg[2]) {
     return serveFile(request, env, ctx, seg[2]);
   }
 
