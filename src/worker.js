@@ -2,9 +2,12 @@
 // files live in the telegram storage group; the index is bundled in the repo as
 // gzipped shards under public/ and read through the ASSETS binding.
 // no uploads, no user account / mtproto, no external database.
+//
+// the bot tokens exist purely so this worker can call forwardMessage and getFile.
+// the bots have no commands and no webhook; they never talk to anyone.
 
-// bot api getFile caps downloads at 20mb. bigger files can only be delivered
-// inside telegram (copyMessage has no cap), so the web route hands those off to the bot.
+// getFile caps downloads at 20mb, and there is no bot path to fall back on,
+// so anything bigger is not servable at all.
 const MAX_HTTP_BYTES = 20 * 1024 * 1024;
 
 const NOTICE =
@@ -45,12 +48,6 @@ async function route(request, env, ctx) {
   // the bundled index is not public
   if (PRIVATE.has(seg[0])) return new Response("not found", { status: 404 });
 
-  // telegram webhook, one path per bot: /tg/webhook/0, /tg/webhook/1, ...
-  if (seg[0] === "tg" && seg[1] === "webhook") {
-    if (request.method !== "POST") return json({ status: 405 }, 405);
-    return handleWebhook(request, env, ctx, Number(seg[2] || 0));
-  }
-
   // nothing here accepts writes anymore
   if (request.method !== "GET" && request.method !== "HEAD") {
     return json({ status: 410, message: NOTICE }, 410);
@@ -61,18 +58,25 @@ async function route(request, env, ctx) {
     return Response.redirect(`${url.origin}/files/${raw.slice(1).join("/")}`, 301);
   }
 
+  // legacy /api/get/:id and /api/view/:id served bytes, same as /files/:id
+  if (seg[0] === "api" && (seg[1] === "get" || seg[1] === "view") && seg[2]) {
+    return serveFile(request, env, ctx, seg[2]);
+  }
+
   // /api/info/:id or /api/info/:id/:filename
   if (seg[0] === "api" && seg[1] === "info" && seg[2]) {
-    const row = await lookup(env, url, seg[2]);
+    const row = await lookup(env, url, seg[2]) || await fromChat(env, ctx, seg[2]);
     if (!row) return json({ status: 404, message: "not found" }, 404);
     return json({
       publicId: row.pid,
       filename: row.name,
       size: row.size,
       mimeType: row.mime,
-      uploadDate: new Date(row.date * 1000).toISOString(),
+      uploadDate: row.date ? new Date(row.date * 1000).toISOString() : null,
       url: `/files/${row.pid}/${encodeFilename(row.name)}`,
       webServable: row.size <= MAX_HTTP_BYTES,
+      // resolved straight from the chat because the index backup is missing it
+      indexed: !row.unindexed,
     });
   }
 
@@ -81,8 +85,8 @@ async function route(request, env, ctx) {
     return serveFile(request, env, ctx, seg[1]);
   }
 
-  // the rest of the old api is gone
-  if (seg[0] === "api" || seg[0] === "lfs") {
+  // the rest of the old api, and the bot's old webhook, are gone
+  if (seg[0] === "api" || seg[0] === "lfs" || seg[0] === "tg") {
     return json({ status: 410, message: NOTICE }, 410);
   }
 
@@ -131,6 +135,31 @@ function parseRow(line) {
   };
 }
 
+// stand-in row for a message the index never knew about. telegram carries the
+// filename and mime itself, so nothing is actually missing except the upload date.
+function rowFromMedia(msgid, media) {
+  return {
+    pid: String(msgid),
+    name: media.file_name || String(msgid),
+    msgid: Number(msgid),
+    size: media.file_size || 0,
+    mime: media.mime_type || "application/octet-stream",
+    date: 0,
+    unindexed: true,
+  };
+}
+
+// last resort for /api/info: ask the chat directly
+async function fromChat(env, ctx, id) {
+  if (!/^\d+$/.test(id)) return null;
+  try {
+    const { media } = await resolveMedia(env, ctx, Number(id));
+    return rowFromMedia(id, media);
+  } catch {
+    return null;
+  }
+}
+
 // accepts either a public id or an old-style telegram message id
 async function lookup(env, url, id) {
   const line = pick(await shard(env, url, "idx", fnv1a(id) & 255, 3), id);
@@ -143,23 +172,6 @@ async function lookup(env, url, id) {
   const pid = m.split("\t")[1];
   const row = pick(await shard(env, url, "idx", fnv1a(pid) & 255, 3), pid);
   return row ? parseRow(row) : null;
-}
-
-async function search(env, url, q) {
-  const needle = q.toLowerCase();
-  const shards = await Promise.all([...Array(8).keys()].map((i) => shard(env, url, "names", i, 1)));
-  const hits = [];
-  for (const text of shards) {
-    if (!text) continue;
-    for (const line of text.split("\n")) {
-      if (line && line.toLowerCase().includes(needle)) {
-        const [pid, name] = line.split("\t");
-        hits.push({ pid, name });
-        if (hits.length >= 40) return hits;
-      }
-    }
-  }
-  return hits;
 }
 
 // --- web serving ------------------------------------------------------------
@@ -177,20 +189,31 @@ async function serveFile(request, env, ctx, id) {
     if (hit) return hit;
   }
 
-  const row = await lookup(env, url, id);
-  if (!row) return json({ status: 404, message: "not found" }, 404);
+  const indexed = await lookup(env, url, id);
+
+  // the index came from a database backup that is missing rows the chat still has,
+  // so a numeric miss is worth trying against telegram before giving up
+  if (!indexed && !/^\d+$/.test(id)) return json({ status: 404, message: "not found" }, 404);
 
   // telegram re-encodes gifs to mp4, often far under the indexed size, so only
   // pre-reject what no transcode could bring back under the limit
-  if (row.size > 50 * 1024 * 1024) return tooBig(env, row);
+  if (indexed && indexed.size > 50 * 1024 * 1024) return tooBig(indexed);
 
-  const { token, media } = await resolveMedia(env, ctx, row.msgid);
+  let token, media;
+  try {
+    ({ token, media } = await resolveMedia(env, ctx, indexed ? indexed.msgid : Number(id)));
+  } catch (err) {
+    if (!indexed) return json({ status: 404, message: "not found" }, 404);
+    throw err;
+  }
+
+  const row = indexed || rowFromMedia(id, media);
 
   // telegram's own numbers beat the index for anything it re-encoded.
   // this has to run before getFile, which errors out on oversized files.
   const size = media.file_size || row.size;
   const mime = media.mime_type || row.mime;
-  if (size > MAX_HTTP_BYTES) return tooBig(env, { ...row, size });
+  if (size > MAX_HTTP_BYTES) return tooBig({ ...row, size });
 
   const path = (await tg(token, "getFile", { file_id: media.file_id })).file_path;
 
@@ -234,15 +257,12 @@ a{color:#8ab4ff;display:inline-block;margin-top:1.25rem}p{color:#a0a0a8}</style>
   );
 }
 
-// over 20mb: bot api cannot hand us the bytes, so point at the bot instead
-function tooBig(env, row) {
-  const bot = env.TELEGRAM_BOT_USERNAME;
-  const link = bot ? `https://t.me/${bot}?start=${encodeURIComponent(row.pid)}` : null;
+// over 20mb: getFile refuses, and there is no bot to hand it off to
+function tooBig(row) {
   return page(row, 413,
-    `<p>${fmtSize(row.size)} — over telegram's 20 MB bot download limit, so it cannot be streamed
-through the website. it is not lost: fetch it inside telegram, where there is no size cap.</p>` +
-    (link ? `<a href="${link}">open in telegram →</a>`
-          : `<p>send <code>${escapeHtml(row.pid)}</code> to the bot.</p>`));
+    `<p>${fmtSize(row.size)} — over telegram's 20 MB bot download limit, so it cannot be served
+here. the file itself is intact; it has to be pulled out of the storage group by hand.</p>
+<p>message <code>${row.msgid}</code></p>`);
 }
 
 // --- telegram ---------------------------------------------------------------
@@ -295,107 +315,6 @@ async function resolveMedia(env, ctx, messageId) {
   if (!media) throw new Error(`message ${messageId} carries no file`);
 
   return { token, media };
-}
-
-// --- bot ---------------------------------------------------------------------
-
-async function handleWebhook(request, env, ctx, idx) {
-  if (env.TELEGRAM_WEBHOOK_SECRET &&
-      request.headers.get("x-telegram-bot-api-secret-token") !== env.TELEGRAM_WEBHOOK_SECRET) {
-    return new Response("forbidden", { status: 403 });
-  }
-
-  const token = tokens(env)[idx];
-  if (!token) return new Response("no such bot", { status: 404 });
-
-  const update = await request.json();
-  const msg = update.message;
-  if (!msg || !msg.text) return new Response("ok");
-
-  const chatId = msg.chat.id;
-  const allow = String(env.TELEGRAM_ALLOWED_USERS || "").split(",").map((s) => s.trim()).filter(Boolean);
-  if (allow.length && !allow.includes(String(msg.from && msg.from.id))) {
-    ctx.waitUntil(say(token, chatId, "not authorised.").catch(() => {}));
-    return new Response("ok");
-  }
-
-  // reply out of band so telegram gets its 200 immediately
-  const url = new URL(request.url);
-  ctx.waitUntil(respond(env, url, ctx, token, chatId, msg.text.trim()).catch((e) =>
-    say(token, chatId, `error: ${e.message}`).catch(() => {})
-  ));
-  return new Response("ok");
-}
-
-async function respond(env, url, ctx, token, chatId, text) {
-  if (text === "/start" || text === "/help") {
-    return say(token, chatId,
-      "send a litter id or url and i'll send the file back.\n" +
-      "/find <text> — search filenames");
-  }
-
-  if (text.startsWith("/find")) {
-    const q = text.slice(5).trim();
-    if (!q) return say(token, chatId, "usage: /find <text>");
-    const hits = await search(env, url, q);
-    if (!hits.length) return say(token, chatId, "nothing matched.");
-    return say(token, chatId, hits.map((h) => `${h.pid} — ${h.name}`).join("\n").slice(0, 3900));
-  }
-
-  const id = extractId(text);
-  if (!id) return say(token, chatId, "send a litter id or url, or /find <text>");
-
-  const row = await lookup(env, url, id);
-  if (!row) return say(token, chatId, `no file for "${id}"`);
-
-  // past telegram's own per-file limit means it was split at upload time,
-  // so the message id points at a manifest rather than the file
-  if (row.size > 2 * 1024 * 1024 * 1024) return sendChunks(env, ctx, token, chatId, row);
-
-  // copyMessage has no size limit, so this covers every single-message file
-  await tg(token, "copyMessage", {
-    chat_id: chatId,
-    from_chat_id: env.TELEGRAM_CHAT_ID,
-    message_id: row.msgid,
-  });
-}
-
-// reads the manifest, then copies every part over in order.
-// copyMessage returns only a message id, so the manifest has to come from a forward.
-async function sendChunks(env, ctx, token, chatId, row) {
-  const r = await resolveMedia(env, ctx, row.msgid);
-  const f = await tg(r.token, "getFile", { file_id: r.media.file_id });
-  const manifest = await (
-    await fetch(`https://api.telegram.org/file/bot${r.token}/${f.file_path}`)
-  ).json();
-
-  const parts = (manifest.parts || []).slice().sort((a, b) => a.index - b.index);
-  if (!parts.length) return say(token, chatId, `${row.name}: manifest lists no parts.`);
-
-  await say(token, chatId,
-    `${row.name}\n${fmtSize(row.size)} in ${parts.length} parts, sending in order.\n` +
-    `join them with: cat part-* > "${row.name}"`);
-
-  for (const p of parts) {
-    await tg(token, "copyMessage", {
-      chat_id: chatId,
-      from_chat_id: env.TELEGRAM_CHAT_ID,
-      message_id: p.messageId,
-    });
-  }
-}
-
-function say(token, chatId, text) {
-  return tg(token, "sendMessage", { chat_id: chatId, text, disable_web_page_preview: true });
-}
-
-// pulls an id out of "/start <id>", a bare id, or a full share url
-function extractId(text) {
-  const t = text.replace(/^\/start\s+/, "").trim();
-  const m = t.match(/\/files?\/([^/?#\s]+)/);
-  if (m) return safeDecode(m[1]);
-  if (/^[A-Za-z0-9_.-]{1,64}$/.test(t)) return t;
-  return null;
 }
 
 // --- helpers ----------------------------------------------------------------

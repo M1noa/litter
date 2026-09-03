@@ -18,15 +18,11 @@
       "/file/*",
       "/api/*",
       "/lfs/*",
-      "/tg/*",
+      "/tg/*", // dead route, kept so it 410s instead of serving the raid page
       "/idx/*",
       "/mid/*",
       "/names/*"
     ]
-  },
-  "vars": {
-    // public @username of the bot, used for t.me deep links on oversized files
-    "TELEGRAM_BOT_USERNAME": "clitterus_bot"
   },
   "compatibility_flags": [
     "nodejs_compat"

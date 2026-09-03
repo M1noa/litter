@@ -7,6 +7,9 @@ The server is gone. This branch keeps the 383,528 existing files reachable witho
 `/` still serves the raid notice. `/files/<id>` still works. Uploads are gone for good, along
 with the Telegram user account, MTProto, Neon, Postgres, and every write path in the app.
 
+The bots have no commands and no webhook. They exist only so the Worker can call `forwardMessage`
+and `getFile` server-side; nobody can talk to them.
+
 Everything runs on the Cloudflare Workers free tier: one Worker, static assets, no database.
 
 ## How it works
@@ -21,7 +24,7 @@ binding, one fetch per lookup:
 | --- | --- | --- |
 | `idx/NNN.bin` (256) | `fnv1a(public_id) & 255` | `pid · name · msgid · size · mimeIdx · date` |
 | `mid/NNN.bin` (256) | `telegram_message_id & 255` | `msgid · pid` — for old share links |
-| `names/N.bin` (8) | round robin | `pid · name` — for the bot's `/find` |
+| `names/N.bin` (8) | round robin | `pid · name` — unused since the bot search was removed |
 
 383,528 rows, 24.5 MB gzipped across 520 files, 1406–1625 rows per `idx` shard, largest shard
 962 KB. `fnv1a()` and the `MIMES` table exist in both `src/worker.js` and
@@ -38,9 +41,14 @@ scratch chat. `forwardMessage` returns the full Message object, which carries a 
 deleted in `waitUntil`, and the response is written to the Cache API so a second request never
 re-forwards.
 
-Bot downloads are capped at 20 MB. 383,332 files are under it and serve over HTTP; the other 196
-get a page linking to the bot, which delivers them in Telegram via `copyMessage` — no size cap, so
-even the 6.2 GB file works there.
+The index came from a two-month-old backup, so it is missing rows the group still has. A numeric id
+that misses the index is tried against Telegram anyway — if the message exists and carries a file,
+the forwarded copy supplies the filename, size and mime type, and it serves normally. `/api/info`
+reports `"indexed": false` for those. A non-numeric miss 404s, since there is nothing to ask for.
+
+`getFile` refuses anything over 20 MB and there is no bot path to fall back on, so the 196 files
+above that limit are unservable. They get a 413 page carrying the Telegram message id; the bytes are
+intact in the group and have to be pulled out by hand.
 
 ## Routes
 
@@ -49,10 +57,10 @@ even the 6.2 GB file works there.
 | `/` and other assets | raid notice, straight from static assets |
 | `/files/:id[/:filename]` | the file — `:id` accepts a public id or an old Telegram message id |
 | `/file/:id/:filename` | 301 to the canonical `/files/...` |
+| `/api/get/:id`, `/api/view/:id` | the old download URLs, same bytes as `/files/:id` |
 | `/api/info/:id` | metadata as JSON |
-| `/tg/webhook/:n` | Telegram webhook, one path per bot token |
 | `/idx/*`, `/mid/*`, `/names/*` | 404 — the bundled index is not public |
-| everything else under `/api/`, `/lfs/` | 410 with the raid notice |
+| everything else under `/api/`, `/lfs/`, `/tg/` | 410 with the raid notice |
 
 Range requests pass through to Telegram's CDN and skip the cache.
 
@@ -69,34 +77,35 @@ On Neon, use the **direct** endpoint, not `-pooler` — PgBouncer can't hold a c
 The script prints row and shard counts; commit `public/idx`, `public/mid`, `public/names`.
 
 **2. Set up the bots.** One is enough; a second spreads the Bot API rate limit. Each needs to be an
-**admin of the storage group**. Create a private group for `TELEGRAM_SCRATCH_CHAT_ID` and add the
-bots there too — forwarded copies land in it for a fraction of a second before being deleted.
+**admin of the storage group**. `TELEGRAM_SCRATCH_CHAT_ID` is optional — set it to a private group
+the bots are also in, and forwarded copies land there for a fraction of a second instead of in the
+storage group itself.
 
 **3. Secrets.**
 
 ```sh
-wrangler secret put TELEGRAM_BOT_TOKENS        # comma-separated, order matches /tg/webhook/:n
-wrangler secret put TELEGRAM_CHAT_ID           # the storage group's id
-wrangler secret put TELEGRAM_SCRATCH_CHAT_ID
-wrangler secret put TELEGRAM_WEBHOOK_SECRET    # any random string
-wrangler secret put TELEGRAM_ALLOWED_USERS     # optional; comma-separated user ids
+TELEGRAM_BOT_TOKENS=111:aaa,222:bbb TELEGRAM_CHAT_ID=-100xxxxxxxxxx ./scripts/setup.sh
 ```
 
-Leaving `TELEGRAM_ALLOWED_USERS` unset lets anyone who finds the bot pull any file by id.
-`TELEGRAM_BOT_USERNAME` lives in `wrangler.jsonc` and drives the `t.me` deep links.
+Or by hand:
+
+```sh
+wrangler secret put TELEGRAM_BOT_TOKENS        # comma-separated
+wrangler secret put TELEGRAM_CHAT_ID           # the storage group
+wrangler secret put TELEGRAM_SCRATCH_CHAT_ID   # optional
+```
 
 For local work, put the same names in `.dev.vars` (gitignored) and run `wrangler dev`. It does not
 hot-reload that file — restart after editing it.
 
-**4. Deploy and register the webhooks.**
+**4. Deploy.**
 
 ```sh
 wrangler deploy
-
-curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
-  -d "url=https://litter.minoa.cat/tg/webhook/0" \
-  -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
 ```
+
+Nothing to register on the Telegram side. If a webhook was ever set on these tokens, clear it:
+`curl "https://api.telegram.org/bot<TOKEN>/deleteWebhook"`.
 
 ## What's been verified
 
@@ -106,7 +115,10 @@ Tested against the live storage group with the bot as an admin:
   2..405785 — 11/11 resolved.
 - Both lookup paths return the same row: `/api/info/001267167364a894` and `/api/info/142052`.
 - A real end-to-end fetch: 15,616 bytes, matching the indexed size exactly. Range requests return
-  206. `/idx/000.bin` returns 404. Webhook rejects a wrong secret with 403.
+  206. `/idx/000.bin` returns 404.
+- The chat fallback works on a real gap: message `296161` is in neither `idx` nor `mid`, and
+  `/files/296161/4_01.webp` still serves 4,353,316 bytes of `image/webp`.
+- The old download URLs work: `/api/get/b00a33dba66483680a389410.gif` returns bytes, not a 410.
 - 383,528 rows survive the round trip through all three shard sets with no mismatches.
 
 ## Known rough edges
@@ -120,10 +132,13 @@ Tested against the live storage group with the bot as an admin:
   Filenames still come from the index, so a transcoded file keeps its original extension.
 - **Some mime types were wrong on upload.** `8d1cfc6e85.png` is WebP bytes, and Telegram reports
   `image/png` too. Not fixable here.
+- **The index is two months stale.** It was built from the last surviving backup, so rows added
+  after it are simply gone. Numeric ids still resolve through the chat fallback; public ids from
+  that window are unrecoverable, because nothing maps them to a message.
 - **One chunked file.** `976b9r` (6.2 GB, 64 × 99 MB parts) stores a `_manifest.json` at message
-  407820 instead of the file. Its parts are 99 MB each, so no bot can download them over HTTP at
-  all — only the bot path works, copying all 64 parts into the chat with `cat part-* > name` for
-  reassembly. It's the only row over 2 GB, which is what triggers that branch.
+  407820 instead of the file. Every part is 99 MB, far past what `getFile` will hand over, so it
+  cannot be served here at all — the 64 parts have to come out of the group by hand and be
+  reassembled with `cat part-* > name`.
 - **`telegram_file_id` from the old database is unusable.** 3,659 rows contain the literal string
   `[object Object]`, and the valid ones are MTProto document ids the Bot API won't accept.
   Everything resolves through `telegram_message_id`.
@@ -132,7 +147,7 @@ Tested against the live storage group with the bot as an admin:
 
 ## Free tier headroom
 
-Worker bundle is 14.4 KiB of the 3 MiB limit. 526 assets of 20,000, largest 962 KB of 25 MiB.
+Worker bundle is 10.7 KiB of the 3 MiB limit. 527 assets of 20,000, largest 962 KB of 25 MiB.
 100,000 requests/day. Cache hits don't re-invoke Telegram.
 
 CPU time is not a concern — the 10 ms limit excludes time spent waiting on I/O, and this worker
@@ -141,6 +156,6 @@ does nothing but wait on Telegram.
 ## About this repo
 
 This is a *mirror* of the private development repository, published without history to keep the
-commit log clean. There are currently **225** total commits in the private repository.
+commit log clean. There are currently **226** total commits in the private repository.
 
 The bundled index is omitted here — see above. Everything else needed to run this is present.
