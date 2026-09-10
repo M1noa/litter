@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Litter Utilities - File Conversion Tools</title>
+    <meta
+      name="description"
+      content="Free utilities for file conversion, URL to file, text to file, file merging and splitting. Companion tools for Litter file hosting."
+    />
+    <meta
+      name="keywords"
+      content="file utilities, file conversion, URL to file, text to file, file merger, file splitter, litter utilities"
+    />
+    <meta name="author" content="Minoa" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://litter.minoa.cat/misc" />
+    <meta property="og:title" content="Litter Utilities - File Conversion Tools" />
+    <meta
+      property="og:description"
+      content="Free utilities for file conversion, URL to file, text to file, file merging and splitting. Companion tools for Litter file hosting."
+    />
+    <meta property="og:image" content="https://litter.minoa.cat/assets/og-image.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://litter.minoa.cat/misc" />
+    <meta property="twitter:title" content="Litter Utilities - File Conversion Tools" />
+    <meta
+      property="twitter:description"
+      content="Free utilities for file conversion, URL to file, text to file, file merging and splitting. Companion tools for Litter file hosting."
+    />
+    <meta property="twitter:image" content="https://litter.minoa.cat/assets/og-image.png" />
+
+    <link rel="canonical" href="https://litter.minoa.cat/misc" />
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+    <link rel="stylesheet" href="/css/style.min.css?v=472c9c26" />
+    <style>
+      .diff-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .diff-control-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .diff-control-group label {
+        margin: 0;
+      }
+
+      .diff-control-group .input-field {
+        width: auto;
+      }
+
+      .diff-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .diff-input-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .diff-input-header > label:first-child {
+        margin: 0;
+        font-weight: 600;
+      }
+
+      .diff-checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+
+      .diff-checkbox-label input {
+        margin: 0;
+      }
+
+      .diff-output-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .diff-output-header > span {
+        font-weight: 600;
+      }
+
+      .diff-output-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .diff-output-actions .button {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      .diff-stats {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .diff-stats span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.35rem 0.65rem;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .diff-stats span:first-child {
+        border-color: rgba(63, 185, 80, 0.35);
+      }
+
+      .diff-stats span:nth-child(2) {
+        border-color: rgba(248, 81, 73, 0.35);
+      }
+
+      .diff-result {
+        background: var(--button-bg);
+        border-radius: 4px;
+        overflow: auto;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 0.9rem;
+        max-height: 500px;
+      }
+
+      @media (max-width: 767px) {
+        .diff-controls {
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .diff-control-group {
+          width: 100%;
+        }
+
+        .diff-control-group .input-field {
+          flex: 1;
+        }
+
+        .diff-inputs {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+
+        .diff-output-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.75rem;
+        }
+
+        .diff-output-actions {
+          width: 100%;
+        }
+
+        .diff-output-actions .button {
+          flex: 1;
+          text-align: center;
+        }
+
+        .diff-stats {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 0.5rem;
+        }
+
+        .diff-stats span {
+          width: 100%;
+        }
+
+        .diff-result {
+          max-height: 340px;
+          font-size: 0.8rem;
+        }
+      }
+
+      @media (min-width: 768px) and (max-width: 1200px) {
+        .diff-inputs {
+          grid-template-columns: 1fr;
+        }
+
+        .diff-controls {
+          gap: 0.75rem;
+        }
+
+        .diff-stats {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .diff-result {
+          max-height: 400px;
+        }
+      }
+    </style>
+<script defer src="/js/analytics-loader.js"></script>
+    <noscript><img src="https://analytics.minoa.cat/p/AJKh6B9VT" style="border:0;width:1px;height:1px;" alt="" /></noscript>
+</head>
+  <body>
+    <div class="container">
+      <div class="upload-card">
+        <h1><a href="/" style="text-decoration: none; color: inherit">Litter Utilities</a></h1>
+      </div>
+
+      <div class="utilities-grid">
+        <!-- 1. url to file upload -->
+        <div class="utility-card">
+          <div class="utility-title">url to file</div>
+          <div class="utility-description">
+            download files from multiple urls and upload them to the file hosting service. separate urls with newlines
+            or commas.
+          </div>
+          <div class="input-group">
+            <label for="urlInput">file urls (one per line or comma-separated):</label>
+            <textarea
+              id="urlInput"
+              class="input-field"
+              placeholder="https://example.com/file1.pdf&#10;https://example.com/file2.jpg&#10;https://example.com/file3.txt"
+              rows="4"
+            ></textarea>
+          </div>
+          <button class="button button-primary" id="urlUploadBtn">upload from urls</button>
+          <div class="progress-container" id="urlProgress">
+            <div class="progress-bar"><div class="progress-fill" id="urlProgressFill"></div></div>
+            <div class="progress-text" id="urlProgressText">ready</div>
+          </div>
+          <div class="status-message" id="urlStatus"></div>
+          <div class="file-output" id="urlOutput" style="display: none"></div>
+        </div>
+
+        <!-- 2. text to file upload -->
+        <div class="utility-card">
+          <div class="utility-title">text to file</div>
+          <div class="utility-description">convert text content into a file and upload it</div>
+          <div class="input-group">
+            <label for="textContent">text content:</label>
+            <textarea id="textContent" class="input-field" placeholder="enter your text here..."></textarea>
+          </div>
+          <div class="input-group">
+            <label for="textFilename">filename:</label>
+            <input type="text" id="textFilename" class="input-field" placeholder="document.txt" />
+          </div>
+          <button class="button button-primary" id="textUploadBtn">create & upload file</button>
+          <div class="progress-container" id="textProgress">
+            <div class="progress-bar"><div class="progress-fill" id="textProgressFill"></div></div>
+            <div class="progress-text" id="textProgressText">ready</div>
+          </div>
+          <div class="status-message" id="textStatus"></div>
+          <div class="file-output" id="textOutput" style="display: none"></div>
+        </div>
+
+        <!-- 3. file merger -->
+        <div class="utility-card">
+          <div class="utility-title">file merger</div>
+          <div class="utility-description">merge multiple text files into one</div>
+          <div class="input-group">
+            <label for="mergeFiles">select files to merge:</label>
+            <input type="file" id="mergeFiles" class="input-field" multiple accept=".txt,.md,.json,.csv,.log" />
+          </div>
+          <div class="input-group">
+            <label for="mergeSeparator">separator:</label>
+            <select id="mergeSeparator" class="input-field">
+              <option value="\n\n---\n\n">--- (with newlines)</option>
+              <option value="\n\n">double newline</option>
+              <option value="\n">single newline</option>
+              <option value=",">comma</option>
+              <option value=";">semicolon</option>
+            </select>
+          </div>
+          <button class="button button-primary" id="mergeBtn">merge files</button>
+          <div class="progress-container" id="mergeProgress">
+            <div class="progress-bar"><div class="progress-fill" id="mergeProgressFill"></div></div>
+            <div class="progress-text" id="mergeProgressText">ready</div>
+          </div>
+          <div class="status-message" id="mergeStatus"></div>
+          <div class="file-output" id="mergeOutput" style="display: none"></div>
+        </div>
+
+        <!-- 4. file splitter -->
+        <div class="utility-card">
+          <div class="utility-title">file splitter</div>
+          <div class="utility-description">split large text files into smaller chunks</div>
+          <div class="input-group">
+            <label for="splitFile">select file to split:</label>
+            <input type="file" id="splitFile" class="input-field" accept=".txt,.md,.json,.csv,.log" />
+          </div>
+          <div class="input-group">
+            <label for="splitMethod">split method:</label>
+            <select id="splitMethod" class="input-field">
+              <option value="lines">by lines</option>
+              <option value="size">by size (kb)</option>
+              <option value="chunks">by number of parts</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="splitValue">value:</label>
+            <input type="number" id="splitValue" class="input-field" value="100" min="1" />
+          </div>
+          <button class="button button-primary" id="splitBtn">split file</button>
+          <div class="progress-container" id="splitProgress">
+            <div class="progress-bar"><div class="progress-fill" id="splitProgressFill"></div></div>
+            <div class="progress-text" id="splitProgressText">ready</div>
+          </div>
+          <div class="status-message" id="splitStatus"></div>
+          <div class="file-output" id="splitOutput" style="display: none"></div>
+        </div>
+
+
+
+<!-- 5. diff checker -->
+<div class="utility-card diff-checker-card" style="grid-column: 1 / -1; max-width: 100%">
+<div class="utility-title">diff checker</div>
+<div class="utility-description">
+compare two text files or paste text directly. supports line-by-line (git style) and character-by-character diffing with syntax highlighting
+</div>
+
+<div class="diff-controls">
+<div class="diff-control-group">
+<label for="diffMode">mode:</label>
+<select id="diffMode" class="input-field">
+<option value="line">line diff (git style)</option>
+<option value="character">character diff (inline)</option>
+</select>
+</div>
+<div class="diff-control-group">
+<label for="diffView">view:</label>
+<select id="diffView" class="input-field">
+<option value="side">side-by-side</option>
+<option value="unified">unified</option>
+</select>
+</div>
+<div class="diff-control-group">
+<label for="diffLanguage">syntax:</label>
+<select id="diffLanguage" class="input-field">
+<option value="auto">auto-detect</option>
+<option value="javascript">javascript</option>
+<option value="python">python</option>
+<option value="html">html</option>
+<option value="css">css</option>
+<option value="json">json</option>
+<option value="markdown">markdown</option>
+<option value="plaintext">plain text</option>
+</select>
+</div>
+</div>
+
+<div class="diff-inputs">
+<div class="diff-input-side">
+<div class="diff-input-header">
+<label for="diffOriginalFile">original</label>
+<label class="diff-checkbox-label">
+<input type="checkbox" id="diffOriginalUseFile" checked>
+<span>use file</span>
+</label>
+</div>
+<div id="diffOriginalFileWrapper">
+<input type="file" id="diffOriginalFileInput" class="input-field" accept=".txt,.md,.json,.js,.py,.html,.css,.xml,.log,.yaml,.yml">
+</div>
+<div id="diffOriginalTextWrapper" style="display: none;">
+<textarea id="diffOriginalText" class="input-field" placeholder="paste original text here..." rows="8"></textarea>
+</div>
+</div>
+<div class="diff-input-side">
+<div class="diff-input-header">
+<label for="diffModifiedFile">modified</label>
+<label class="diff-checkbox-label">
+<input type="checkbox" id="diffModifiedUseFile" checked>
+<span>use file</span>
+</label>
+</div>
+<div id="diffModifiedFileWrapper">
+<input type="file" id="diffModifiedFileInput" class="input-field" accept=".txt,.md,.json,.js,.py,.html,.css,.xml,.log,.yaml,.yml">
+</div>
+<div id="diffModifiedTextWrapper" style="display: none;">
+<textarea id="diffModifiedText" class="input-field" placeholder="paste modified text here..." rows="8"></textarea>
+</div>
+</div>
+</div>
+
+<button class="button button-primary" id="diffCompareBtn">compare</button>
+
+<div class="progress-container" id="diffProgress">
+<div class="progress-bar"><div class="progress-fill" id="diffProgressFill"></div></div>
+<div class="progress-text" id="diffProgressText">ready</div>
+</div>
+
+<div class="status-message" id="diffStatus"></div>
+
+<div id="diffOutput" style="display: none; margin-top: 1rem;">
+<div class="diff-output-header">
+<span>result</span>
+<div class="diff-output-actions">
+<button class="button" id="diffCopyBtn">copy</button>
+<button class="button" id="diffDownloadBtn">download .patch</button>
+</div>
+</div>
+<div id="diffStats" class="diff-stats"></div>
+<div id="diffResult" class="diff-result"></div>
+</div>
+</div>
+
+<!-- 6. file metadata extractor -->
+<div class="utility-card">
+<div class="utility-title">file metadata</div>
+          <div class="utility-description">extract and save file metadata information</div>
+          <div class="input-group">
+            <label for="metadataFile">select file:</label>
+            <input type="file" id="metadataFile" class="input-field" />
+          </div>
+          <button class="button button-primary" id="metadataBtn">extract metadata</button>
+          <div class="input-group">
+            <label for="metadataOutput">metadata:</label>
+            <textarea id="metadataOutput" class="input-field" readonly></textarea>
+          </div>
+          <button class="button" id="metadataUploadBtn" disabled>upload metadata</button>
+          <div class="status-message" id="metadataStatus"></div>
+        </div>
+
+
+<!-- 7. file backup creator -->
+        <div class="utility-card">
+          <div class="utility-title">backup creator</div>
+          <div class="utility-description">create timestamped backups of your files</div>
+          <div class="input-group">
+            <label for="backupFile">select file to backup:</label>
+            <input type="file" id="backupFile" class="input-field" />
+          </div>
+          <div class="input-group">
+            <label for="backupPrefix">backup prefix:</label>
+            <input type="text" id="backupPrefix" class="input-field" placeholder="backup" value="backup" />
+          </div>
+          <button class="button button-primary" id="backupBtn">create backup</button>
+          <div class="progress-container" id="backupProgress">
+            <div class="progress-bar"><div class="progress-fill" id="backupProgressFill"></div></div>
+            <div class="progress-text" id="backupProgressText">ready</div>
+          </div>
+          <div class="status-message" id="backupStatus"></div>
+          <div class="file-output" id="backupOutput" style="display: none"></div>
+        </div>
+
+        <!-- 9. noise cancellation -->
+        <div class="utility-card" id="noiseCancelCard">
+          <div class="utility-title">noise cancellation (phase inversion)</div>
+          <div class="utility-description">
+            remove constant background noise by inverting a captured noise profile and mixing it with the original audio.
+            all processing stays in your browser.
+          </div>
+
+          <div class="progress-container" id="noiseCancelProgress">
+            <div class="progress-bar"><div class="progress-fill" id="noiseCancelProgressFill"></div></div>
+            <div class="progress-text" id="noiseCancelProgressText">ready</div>
+          </div>
+
+          <div class="input-group">
+            <label for="noiseOriginalFile">original audio file:</label>
+            <input
+              type="file"
+              id="noiseOriginalFile"
+              class="input-field"
+              accept=".wav,.mp3,.ogg,.flac,.m4a,.aac,audio/*"
+            />
+<div class="utility-description" id="noiseOriginalMeta">no file selected</div>
+          <audio id="noiseOriginalPreview" controls style="width: 100%; display: none; margin-top: 0.5rem"></audio>
+        </div>
+
+          <div class="input-group">
+            <label for="noiseProfileFile">noise profile audio file (constant noise only):</label>
+            <input
+              type="file"
+              id="noiseProfileFile"
+              class="input-field"
+              accept=".wav,.mp3,.ogg,.flac,.m4a,.aac,audio/*"
+            />
+<div class="utility-description" id="noiseProfileMeta">no file selected</div>
+          <audio id="noiseProfilePreview" controls style="width: 100%; display: none; margin-top: 0.5rem"></audio>
+        </div>
+
+          <div class="input-group">
+            <label for="noiseLengthMode">length mismatch handling:</label>
+            <select id="noiseLengthMode" class="input-field">
+              <option value="trim">trim both to shorter duration</option>
+              <option value="pad">pad shorter noise profile with silence</option>
+              <option value="repeat">loop noise profile to match original</option>
+            </select>
+          </div>
+
+          <div class="status-message" id="noiseCompatibility"></div>
+          <button class="button button-primary" id="noiseCancelBtn">
+            cancel noise
+          </button>
+          <div class="status-message" id="noiseCancelStatus"></div>
+<div class="file-output" id="noiseCancelOutput" style="display: none"></div>
+          <audio id="noiseOutputPreview" controls style="width: 100%; display: none; margin-top: 0.75rem"></audio>
+          <button class="button" id="noiseDownloadBtn" style="display: none; margin-top: 0.75rem">download cleaned audio</button>
+        </div>
+
+        <!-- 10. api examples -->
+        <div class="utility-card" style="grid-column: 1 / -1; max-width: 100%" id="apiExamplesCard">
+          <div class="utility-title">api examples</div>
+          <div class="utility-description">
+            learn how to use our api to upload files programmatically. select your language/tool below.
+          </div>
+
+          <div class="input-group">
+            <select id="apiLanguageSelect" class="input-field">
+              <option value="curl">cURL</option>
+              <option value="python">Python</option>
+              <option value="nodejs">Node.js</option>
+              <option value="js">JavaScript (Browser)</option>
+              <option value="powershell">PowerShell</option>
+              <option value="go">Go</option>
+              <option value="rust">Rust</option>
+              <option value="ruby">Ruby</option>
+              <option value="php">PHP</option>
+              <option value="java">Java</option>
+              <option value="csharp">C#</option>
+              <option value="cpp">C# (.NET HTTPClient)</option>
+              <option value="swift">Swift</option>
+              <option value="dart">Dart</option>
+              <option value="bookmarklet">Bookmarklet</option>
+            </select>
+          </div>
+
+          <div id="apiExampleContainer">
+            <!-- Content will be populated by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div class="footer-left">
+        <span
+          id="totalSizeFooter"
+          class="footer-storage-info"
+          title="Click to open settings"
+          style="cursor: pointer; text-decoration: underline dotted"
+          >Loading...</span
+        >
+        <p class="seo-text">a free, open file host using telegram for storage.</p>
+      </div>
+
+      <div class="footer-links">
+        <a href="/" class="footer-btn">home</a>
+        <a href="https://github.com/M1noa/" target="_blank" class="footer-btn">github</a>
+        <a href="/api/docs.json" class="footer-btn" target="_blank">docs</a>
+        <a href="/report" class="footer-btn">report</a>
+        <button type="button" id="privacyBtn" class="footer-btn">privacy policy</button>
+        <button type="button" id="termsBtn" class="footer-btn">terms of service</button>
+        <a href="mailto:litterdmca@minoa.cat" class="footer-btn">dmca</a>
+        <a href="https://crypto.minoa.cat" class="footer-btn" target="_blank">donate</a>
+      </div>
+    </footer>
+
+    <!-- settings modal -->
+    <div class="modal" id="settingsModal">
+      <div class="modal-content">
+        <button class="close-modal">&times;</button>
+        <h2>settings</h2>
+        <br />
+        <div class="settings-group">
+          <h3>upload performance</h3>
+          <div class="input-group">
+            <label for="maxConcurrentUploads">max concurrent file uploads (1-20)</label>
+            <input type="number" id="maxConcurrentUploads" class="input-field" min="1" max="20" />
+          </div>
+          <div class="input-group">
+            <label for="uploadCooldown">upload cooldown (ms) (0-10000)</label>
+            <input type="number" id="uploadCooldown" class="input-field" min="0" max="10000" />
+          </div>
+        </div>
+
+        <div class="settings-group" style="margin-top: 20px">
+          <h3>appearance</h3>
+          <div class="input-group">
+            <label for="themeSelect">theme</label>
+            <select id="themeSelect" class="input-field">
+              <option value="custom">custom</option>
+              <option value="random">random (unique color each visit)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-actions" style="margin-top: 30px; display: flex; justify-content: flex-end; gap: 10px">
+          <button id="resetSettingsBtn" class="button button-danger" style="background-color: #dc3545">
+            reset to defaults
+          </button>
+          <button id="saveSettingsBtn" class="button button-primary">save changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Privacy Modal -->
+    <div class="modal" id="privacyModal">
+      <div class="modal-content">
+        <button class="close-modal">&times;</button>
+        <h2>privacy policy</h2>
+        <p>last updated: june 2024</p>
+        <br />
+        <p>at litter, we value your privacy and aim to be fully transparent about how this service operates:</p>
+        <br />
+        <div style="margin-left: 10px">
+          <p><strong>storage:</strong> all files are stored securely on telegram's servers, not our own.</p>
+          <p><strong>data collection:</strong> we do not collect, require, or store any personal information.</p>
+          <p>
+            <strong>accessibility:</strong> any file you upload is public and can be accessed by anyone with the link.
+          </p>
+          <p>
+            <strong>analytics:</strong> we use
+            <a
+              href="https://github.com/umami-software/umami?tab=readme-ov-file#umami"
+              target="_blank"
+              style="color: var(--link-color)"
+              >anonymous analytics</a
+            >.
+          </p>
+          <p><strong>third parties:</strong> your data is never sold or shared with third parties.</p>
+        </div>
+        <br />
+        <p>by using our service, you agree to this privacy policy.</p>
+      </div>
+    </div>
+
+    <!-- Terms Modal -->
+    <div class="modal" id="termsModal">
+      <div class="modal-content">
+        <button class="close-modal">&times;</button>
+        <h2>terms of service</h2>
+        <p>last updated: june 2024</p>
+        <br />
+        <p>by using litter, you agree to the following terms:</p>
+        <br />
+        <div style="margin-left: 10px">
+          <p><strong>content responsibility:</strong> you are solely responsible for the content you upload.</p>
+          <p><strong>prohibited content:</strong> do not upload illegal content, malware, or harmful files.</p>
+          <p><strong>limits:</strong> the maximum file size per upload is 80gb.</p>
+          <p>
+            <strong>public access:</strong> files are stored publicly; anyone with the URL can view or download them.
+          </p>
+          <p><strong>moderation:</strong> we reserve the right to remove any content at any time without notice.</p>
+          <p>
+            <strong>liability:</strong> we are not responsible for data loss, downtime, or the nature of uploaded
+            content.
+          </p>
+        </div>
+        <br />
+        <p>we reserve the right to modify these terms at any time.</p>
+      </div>
+    </div>
+
+    <!-- shared javascript -->
+    <script defer src="/js/shared.min.js?v=4e1b2428"></script>
+    <script defer src="/js/main.min.js?v=20260413b"></script>
+    <script defer src="/js/misc.js?v=20260413-noisecancel"></script>
+  </body>
+</html>
